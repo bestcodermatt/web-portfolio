@@ -355,6 +355,61 @@
     transform: translateX(4px) scale(1.45);
   }
 
+  /* ── video cursor preview (desktop) ── */
+  .video-cursor-preview {
+    position: fixed;
+    width: 340px;
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.88) translate(-50%, -50%);
+    transform-origin: top left;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 9000;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .video-cursor-preview.visible {
+    opacity: 1;
+    transform: scale(1) translate(-50%, -50%);
+  }
+  .video-cursor-preview video {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  /* ── video modal (mobile) ── */
+  .video-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 10000;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .video-modal.open { display: flex; }
+  .video-modal video {
+    width: 100%; max-width: 500px;
+    border-radius: 12px;
+    outline: none;
+  }
+  .video-modal-close {
+    position: absolute; top: 20px; right: 20px;
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.15);
+    border: none; border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 20px; line-height: 1;
+  }
+
+  .video-row { cursor: default; }
+
+  @media (max-width: 768px) {
+    .video-row { cursor: pointer; }
+  }
+
   .work-item {
     flex: 0 1 380px;
     opacity: 0;
@@ -995,12 +1050,12 @@
   <h2 class="work-heading">Work</h2>
   <div class="work-links">
 
-    <a class="work-link-row" href="https://www.wildbran.pt/" target="_blank" rel="noopener">
+    <div class="work-link-row video-row" id="spaceRow">
       <span class="wl-index">01</span>
-      <span class="wl-name">Wildbran</span>
-      <span class="wl-url">wildbran.pt</span>
+      <span class="wl-name">Space</span>
+      <span class="wl-url">Studio</span>
       <span class="wl-arrow"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>
-    </a>
+    </div>
 
     <a class="work-link-row" href="https://trenago.pl" target="_blank" rel="noopener">
       <span class="wl-index">02</span>
@@ -1440,6 +1495,72 @@
   el.addEventListener('mouseleave', function () {
     cancelAnimationFrame(rafId);
     el.textContent = original;
+  });
+})();
+</script>
+
+<!-- video cursor preview (desktop) -->
+<div class="video-cursor-preview" id="videoCursor">
+  <video src="hurski_video_website.mp4" muted playsinline loop preload="none"></video>
+</div>
+
+<!-- video modal (mobile) -->
+<div class="video-modal" id="videoModal">
+  <button class="video-modal-close" id="videoModalClose">&#x2715;</button>
+  <video src="hurski_video_website.mp4" muted playsinline loop controls preload="none" id="videoModalVid"></video>
+</div>
+
+<script>
+(function () {
+  var row = document.getElementById('spaceRow');
+  var cursor = document.getElementById('videoCursor');
+  var cursorVid = cursor ? cursor.querySelector('video') : null;
+  var modal = document.getElementById('videoModal');
+  var modalVid = document.getElementById('videoModalVid');
+  var closeBtn = document.getElementById('videoModalClose');
+  if (!row || !cursor || !modal) return;
+
+  var isMobile = function () { return window.innerWidth <= 768; };
+
+  /* ── DESKTOP: cursor-follow preview ── */
+  row.addEventListener('mouseenter', function () {
+    if (isMobile()) return;
+    cursor.classList.add('visible');
+    cursorVid.play();
+  });
+
+  row.addEventListener('mousemove', function (e) {
+    if (isMobile()) return;
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top  = (e.clientY - 20) + 'px';
+  });
+
+  row.addEventListener('mouseleave', function () {
+    if (isMobile()) return;
+    cursor.classList.remove('visible');
+    cursorVid.pause();
+    cursorVid.currentTime = 0;
+  });
+
+  /* ── MOBILE: tap → modal ── */
+  row.addEventListener('click', function () {
+    if (!isMobile()) return;
+    modal.classList.add('open');
+    modalVid.play();
+  });
+
+  closeBtn.addEventListener('click', function () {
+    modal.classList.remove('open');
+    modalVid.pause();
+    modalVid.currentTime = 0;
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) {
+      modal.classList.remove('open');
+      modalVid.pause();
+      modalVid.currentTime = 0;
+    }
   });
 })();
 </script>
