@@ -1669,16 +1669,29 @@
         blobReady = true;
         if (pendingShow) { panel.classList.add('visible'); }
       }).catch(function () { blobReady = true; });
-    row.addEventListener('mouseenter', function () {
-      if (isMobile()) return;
+    var overRow = false, overPanel = false;
+    function showPanel() {
       if (blobReady) panel.classList.add('visible');
       else pendingShow = true;
+    }
+    function hidePanel() {
+      if (!overRow && !overPanel) {
+        pendingShow = false;
+        panel.classList.remove('visible');
+        vid.pause();
+      }
+    }
+    row.addEventListener('mouseenter', function () {
+      if (isMobile()) return;
+      overRow = true; showPanel();
     });
     row.addEventListener('mouseleave', function () {
       if (isMobile()) return;
-      pendingShow = false;
-      panel.classList.remove('visible');
-      vid.pause();
+      overRow = false; setTimeout(hidePanel, 50);
+    });
+    panel.addEventListener('mouseenter', function () { overPanel = true; });
+    panel.addEventListener('mouseleave', function () {
+      overPanel = false; setTimeout(hidePanel, 50);
     });
     if (modal && closeBtn) {
       row.addEventListener('click', function () {
