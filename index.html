@@ -1554,130 +1554,85 @@
 </div>
 
 <script>
+/* Video rows: fetch→blob preload + hover logic unified so hover before load still works */
 (function () {
-  var row = document.getElementById('spaceRow');
-  var cursor = document.getElementById('videoCursor');
-  var cursorVid = cursor ? cursor.querySelector('video') : null;
-  var modal = document.getElementById('videoModal');
-  var modalVid = document.getElementById('videoModalVid');
-  var closeBtn = document.getElementById('videoModalClose');
-  if (!row || !cursor || !modal) return;
+  function makeVideoRow(cfg) {
+    var row       = document.getElementById(cfg.rowId);
+    var cursor    = document.getElementById(cfg.cursorId);
+    var modal     = document.getElementById(cfg.modalId);
+    var closeBtn  = document.getElementById(cfg.closeBtnId);
+    if (!row || !cursor || !modal) return;
 
-  var isMobile = function () { return window.innerWidth <= 768; };
+    var cursorVid = cursor.querySelector('video');
+    var modalVid  = document.getElementById(cfg.modalVidId);
+    var isMobile  = function () { return window.innerWidth <= 768; };
 
-  /* ── DESKTOP: cursor-follow preview ── */
-  row.addEventListener('mouseenter', function () {
-    if (isMobile()) return;
-    cursor.classList.add('visible');
-    cursorVid.play();
-  });
+    var blobReady   = false;
+    var pendingPlay = false; /* hovered before blob was ready */
 
-  row.addEventListener('mousemove', function (e) {
-    if (isMobile()) return;
-    cursor.style.left = e.clientX + 'px';
-    cursor.style.top  = (e.clientY - 20) + 'px';
-  });
-
-  row.addEventListener('mouseleave', function () {
-    if (isMobile()) return;
-    cursor.classList.remove('visible');
-    cursorVid.pause();
-    cursorVid.currentTime = 0;
-  });
-
-  /* ── MOBILE: tap → modal ── */
-  row.addEventListener('click', function () {
-    if (!isMobile()) return;
-    modal.classList.add('open');
-    modalVid.play();
-  });
-
-  closeBtn.addEventListener('click', function () {
-    modal.classList.remove('open');
-    modalVid.pause();
-    modalVid.currentTime = 0;
-  });
-
-  modal.addEventListener('click', function (e) {
-    if (e.target === modal) {
-      modal.classList.remove('open');
-      modalVid.pause();
-      modalVid.currentTime = 0;
-    }
-  });
-})();
-
-(function () {
-  var row = document.getElementById('greenRow');
-  var cursor = document.getElementById('videoCursorGreen');
-  var cursorVid = cursor ? cursor.querySelector('video') : null;
-  var modal = document.getElementById('videoModalGreen');
-  var modalVid = document.getElementById('videoModalVidGreen');
-  var closeBtn = document.getElementById('videoModalCloseGreen');
-  if (!row || !cursor || !modal) return;
-
-  var isMobile = function () { return window.innerWidth <= 768; };
-
-  row.addEventListener('mouseenter', function () {
-    if (isMobile()) return;
-    cursor.classList.add('visible');
-    cursorVid.play();
-  });
-
-  row.addEventListener('mousemove', function (e) {
-    if (isMobile()) return;
-    cursor.style.left = e.clientX + 'px';
-    cursor.style.top  = (e.clientY - 20) + 'px';
-  });
-
-  row.addEventListener('mouseleave', function () {
-    if (isMobile()) return;
-    cursor.classList.remove('visible');
-    cursorVid.pause();
-    cursorVid.currentTime = 0;
-  });
-
-  row.addEventListener('click', function () {
-    if (!isMobile()) return;
-    modal.classList.add('open');
-    modalVid.play();
-  });
-
-  closeBtn.addEventListener('click', function () {
-    modal.classList.remove('open');
-    modalVid.pause();
-    modalVid.currentTime = 0;
-  });
-
-  modal.addEventListener('click', function (e) {
-    if (e.target === modal) {
-      modal.classList.remove('open');
-      modalVid.pause();
-      modalVid.currentTime = 0;
-    }
-  });
-})();
-</script>
-
-<script>
-/* Preload both videos fully into memory via fetch → blob URL → instant play */
-(function () {
-  function preload(videoEl) {
-    if (!videoEl) return;
-    var src = videoEl.getAttribute('src');
+    /* Fetch → blob → swap src */
+    var src = cursorVid.getAttribute('src');
     fetch(src)
       .then(function (r) { return r.blob(); })
       .then(function (blob) {
-        var url = URL.createObjectURL(blob);
-        videoEl.src = url;
-        videoEl.load();
+        cursorVid.src = URL.createObjectURL(blob);
+        cursorVid.load();
+        blobReady = true;
+        if (pendingPlay) { cursorVid.play(); pendingPlay = false; }
       })
-      .catch(function () {});
+      .catch(function () { blobReady = true; }); /* fallback: play anyway */
+
+    /* Desktop hover */
+    row.addEventListener('mouseenter', function () {
+      if (isMobile()) return;
+      cursor.classList.add('visible');
+      if (blobReady) { cursorVid.play(); }
+      else           { pendingPlay = true; }
+    });
+
+    row.addEventListener('mousemove', function (e) {
+      if (isMobile()) return;
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top  = (e.clientY - 20) + 'px';
+    });
+
+    row.addEventListener('mouseleave', function () {
+      if (isMobile()) return;
+      pendingPlay = false;
+      cursor.classList.remove('visible');
+      cursorVid.pause();
+      cursorVid.currentTime = 0;
+    });
+
+    /* Mobile modal */
+    row.addEventListener('click', function () {
+      if (!isMobile()) return;
+      modal.classList.add('open');
+      if (modalVid) modalVid.play();
+    });
+
+    closeBtn.addEventListener('click', function () {
+      modal.classList.remove('open');
+      if (modalVid) { modalVid.pause(); modalVid.currentTime = 0; }
+    });
+
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) {
+        modal.classList.remove('open');
+        if (modalVid) { modalVid.pause(); modalVid.currentTime = 0; }
+      }
+    });
   }
-  var c1 = document.getElementById('videoCursor');
-  var c2 = document.getElementById('videoCursorGreen');
-  if (c1) preload(c1.querySelector('video'));
-  if (c2) preload(c2.querySelector('video'));
+
+  makeVideoRow({
+    rowId: 'spaceRow', cursorId: 'videoCursor',
+    modalId: 'videoModal', closeBtnId: 'videoModalClose', modalVidId: 'videoModalVid'
+  });
+
+  makeVideoRow({
+    rowId: 'greenRow', cursorId: 'videoCursorGreen',
+    modalId: 'videoModalGreen', closeBtnId: 'videoModalCloseGreen', modalVidId: 'videoModalVidGreen'
+  });
 })();
 </script>
 </body>
