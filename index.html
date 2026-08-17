@@ -356,7 +356,7 @@
     transform: translateX(4px) scale(1.45);
   }
 
-  /* ── video cursor preview (desktop) ── */
+  /* ── video cursor preview (desktop) — Greenroot (cursor-follow) ── */
   .video-cursor-preview {
     position: fixed;
     width: 680px;
@@ -376,6 +376,32 @@
     transform: scale(1) translate(-50%, -50%);
   }
   .video-cursor-preview video {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  /* ── Space video panel (fixed right, with controls) ── */
+  .video-panel {
+    position: fixed;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%) scale(0.92);
+    width: 560px;
+    aspect-ratio: 16/9;
+    border-radius: 14px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+    z-index: 9000;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+  }
+  .video-panel.visible {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+    pointer-events: auto;
+  }
+  .video-panel video {
     width: 100%; height: 100%;
     object-fit: cover; display: block;
   }
@@ -1531,9 +1557,9 @@
 })();
 </script>
 
-<!-- video cursor preview (desktop) — Space -->
-<div class="video-cursor-preview" id="videoCursor">
-  <video src="hurski_video_website.mp4" muted playsinline loop preload="auto"></video>
+<!-- video panel (desktop) — Space, fixed right with controls -->
+<div class="video-panel" id="videoCursor">
+  <video src="hurski_video_website.mp4" playsinline preload="auto" controls id="spaceVid"></video>
 </div>
 
 <!-- video cursor preview (desktop) — Greenroot -->
@@ -1624,10 +1650,54 @@
     });
   }
 
-  makeVideoRow({
-    rowId: 'spaceRow', cursorId: 'videoCursor',
-    modalId: 'videoModal', closeBtnId: 'videoModalClose', modalVidId: 'videoModalVid'
-  });
+  /* Space — fixed panel (no cursor-follow), with controls */
+  (function () {
+    var row    = document.getElementById('spaceRow');
+    var panel  = document.getElementById('videoCursor');
+    var vid    = document.getElementById('spaceVid');
+    var modal  = document.getElementById('videoModal');
+    var closeBtn = document.getElementById('videoModalClose');
+    var modalVid = document.getElementById('videoModalVid');
+    if (!row || !panel || !vid) return;
+    var isMobile = function () { return window.innerWidth <= 768; };
+    var blobReady = false, pendingShow = false;
+    fetch(vid.getAttribute('src'))
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        vid.src = URL.createObjectURL(blob);
+        vid.load();
+        blobReady = true;
+        if (pendingShow) { panel.classList.add('visible'); }
+      }).catch(function () { blobReady = true; });
+    row.addEventListener('mouseenter', function () {
+      if (isMobile()) return;
+      if (blobReady) panel.classList.add('visible');
+      else pendingShow = true;
+    });
+    row.addEventListener('mouseleave', function () {
+      if (isMobile()) return;
+      pendingShow = false;
+      panel.classList.remove('visible');
+      vid.pause();
+    });
+    if (modal && closeBtn) {
+      row.addEventListener('click', function () {
+        if (!isMobile()) return;
+        modal.classList.add('open');
+        if (modalVid) modalVid.play();
+      });
+      closeBtn.addEventListener('click', function () {
+        modal.classList.remove('open');
+        if (modalVid) { modalVid.pause(); modalVid.currentTime = 0; }
+      });
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+          modal.classList.remove('open');
+          if (modalVid) { modalVid.pause(); modalVid.currentTime = 0; }
+        }
+      });
+    }
+  })();
 
   makeVideoRow({
     rowId: 'greenRow', cursorId: 'videoCursorGreen',
