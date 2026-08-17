@@ -1660,21 +1660,24 @@
 </script>
 
 <script>
-/* Force both cursor videos to start buffering immediately on page load */
+/* Preload both videos fully into memory via fetch → blob URL → instant play */
 (function () {
-  var ids = ['videoCursor', 'videoCursorGreen'];
-  ids.forEach(function (id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var vid = el.querySelector('video');
-    if (!vid) return;
-    vid.load();
-    /* play silently then pause — forces aggressive buffering */
-    var p = vid.play();
-    if (p && p.then) {
-      p.then(function () { vid.pause(); vid.currentTime = 0; }).catch(function () {});
-    }
-  });
+  function preload(videoEl) {
+    if (!videoEl) return;
+    var src = videoEl.getAttribute('src');
+    fetch(src)
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        videoEl.src = url;
+        videoEl.load();
+      })
+      .catch(function () {});
+  }
+  var c1 = document.getElementById('videoCursor');
+  var c2 = document.getElementById('videoCursorGreen');
+  if (c1) preload(c1.querySelector('video'));
+  if (c2) preload(c2.querySelector('video'));
 })();
 </script>
 </body>
