@@ -971,6 +971,24 @@
     transition: width linear;
   }
 
+  /* loading counter */
+  #cin-counter {
+    position: absolute;
+    bottom: 36px;
+    right: 48px;
+    font-family: 'DM Sans', 'Inter', Helvetica, sans-serif;
+    font-size: clamp(13px, 1.1vw, 16px);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.45);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+
+  @media (max-width: 700px) {
+    #cin-counter { bottom: 24px; right: 24px; }
+  }
+
 </style>
 </head>
 <body>
@@ -984,6 +1002,7 @@
     <p class="cin-text" id="cin-t2">Design that drives real growth.</p>
   </div>
   <div id="cin-progress"></div>
+  <div id="cin-counter">00</div>
 </div>
 
 <!-- Mobile: desktop-only notice -->
@@ -1255,6 +1274,19 @@
 
   var isMob = window.matchMedia('(max-width: 700px)').matches;
   var TOTAL = isMob ? 4000 : 7200;
+
+  /* Animate counter 00 → 100 */
+  var counter = document.getElementById('cin-counter');
+  if (counter) {
+    var countVal = 0;
+    var countDuration = TOTAL - 600;
+    var countInterval = countDuration / 100;
+    var countTimer = setInterval(function () {
+      countVal++;
+      counter.textContent = (countVal < 10 ? '0' : '') + countVal + '%';
+      if (countVal >= 100) clearInterval(countTimer);
+    }, countInterval);
+  }
 
   /* Animate progress bar */
   progress.style.transition = 'width ' + TOTAL + 'ms linear';
