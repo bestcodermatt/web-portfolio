@@ -1565,9 +1565,9 @@
   <video src="hurski_video_website.mp4" muted playsinline preload="auto" controls id="spaceVid"></video>
 </div>
 
-<!-- video cursor preview (desktop) — Greenroot -->
-<div class="video-cursor-preview" id="videoCursorGreen">
-  <video src="16_9_video_green.mp4" muted playsinline loop preload="auto"></video>
+<!-- video panel (desktop) — Greenroot, fixed center with controls -->
+<div class="video-panel" id="videoCursorGreen">
+  <video src="16_9_video_green.mp4" muted playsinline preload="auto" controls id="greenVid"></video>
 </div>
 
 <!-- video modal (mobile) — Space -->
@@ -1715,10 +1715,67 @@
     }
   })();
 
-  makeVideoRow({
-    rowId: 'greenRow', cursorId: 'videoCursorGreen',
-    modalId: 'videoModalGreen', closeBtnId: 'videoModalCloseGreen', modalVidId: 'videoModalVidGreen'
-  });
+  /* Greenroot — same fixed panel mechanic as Space */
+  (function () {
+    var row      = document.getElementById('greenRow');
+    var panel    = document.getElementById('videoCursorGreen');
+    var vid      = document.getElementById('greenVid');
+    var modal    = document.getElementById('videoModalGreen');
+    var closeBtn = document.getElementById('videoModalCloseGreen');
+    var modalVid = document.getElementById('videoModalVidGreen');
+    if (!row || !panel || !vid) return;
+    var isMobile = function () { return window.innerWidth <= 768; };
+    var blobReady = false, pendingShow = false;
+    fetch(vid.getAttribute('src'))
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        vid.src = URL.createObjectURL(blob);
+        vid.load();
+        blobReady = true;
+        if (pendingShow) panel.classList.add('visible');
+      }).catch(function () { blobReady = true; });
+    var overRow = false, overPanel = false;
+    function showPanel() {
+      if (blobReady) panel.classList.add('visible');
+      else pendingShow = true;
+    }
+    function hidePanel() {
+      if (!overRow && !overPanel) {
+        pendingShow = false;
+        panel.classList.remove('visible');
+        vid.pause();
+      }
+    }
+    row.addEventListener('mouseenter', function () {
+      if (isMobile()) return;
+      overRow = true; showPanel();
+    });
+    row.addEventListener('mouseleave', function () {
+      if (isMobile()) return;
+      overRow = false; setTimeout(hidePanel, 50);
+    });
+    panel.addEventListener('mouseenter', function () { overPanel = true; });
+    panel.addEventListener('mouseleave', function () {
+      overPanel = false; setTimeout(hidePanel, 50);
+    });
+    if (modal && closeBtn) {
+      row.addEventListener('click', function () {
+        if (!isMobile()) return;
+        modal.classList.add('open');
+        if (modalVid) modalVid.play();
+      });
+      closeBtn.addEventListener('click', function () {
+        modal.classList.remove('open');
+        if (modalVid) { modalVid.pause(); modalVid.currentTime = 0; }
+      });
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+          modal.classList.remove('open');
+          if (modalVid) { modalVid.pause(); modalVid.currentTime = 0; }
+        }
+      });
+    }
+  })();
 })();
 </script>
 </body>
