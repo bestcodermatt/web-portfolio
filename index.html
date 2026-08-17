@@ -1659,5 +1659,23 @@
 })();
 </script>
 
+<script>
+/* Force both cursor videos to start buffering immediately on page load */
+(function () {
+  var ids = ['videoCursor', 'videoCursorGreen'];
+  ids.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var vid = el.querySelector('video');
+    if (!vid) return;
+    vid.load();
+    /* play silently then pause — forces aggressive buffering */
+    var p = vid.play();
+    if (p && p.then) {
+      p.then(function () { vid.pause(); vid.currentTime = 0; }).catch(function () {});
+    }
+  });
+})();
+</script>
 </body>
 </html>
